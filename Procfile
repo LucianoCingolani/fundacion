@@ -1,1 +1,1 @@
-web: gunicorn fundacion.wsgi
+web: python manage.py collectstatic && gunicorn fundacion.wsgi

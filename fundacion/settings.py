@@ -112,7 +112,7 @@ LANGUAGE_CODE = 'es-es'
 TIME_ZONE = 'America/Argentina/Buenos_Aires'
 
 USE_I18N = True
-
+USE_L10N = True
 USE_TZ = True
 
 
@@ -136,3 +136,16 @@ CSRF_TRUSTED_ORIGINS = ['http://localhost', 'https://web-production-58ef3.up.rai
 LOGIN_REDIRECT_URL = 'home'  
 LOGOUT_REDIRECT_URL = 'login'
 LOGIN_URL = 'login'
+
+# Forzar el uso de separadores de miles y decimales
+USE_THOUSAND_SEPARATOR = True
+THOUSAND_SEPARATOR = '.'
+DECIMAL_SEPARATOR = ','
+NUMBER_GROUPING = 3
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'lucianocingolani9@gmail.com'
+EMAIL_HOST_PASSWORD = '02122002'

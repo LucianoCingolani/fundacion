@@ -5,6 +5,7 @@ from fundacion_app.forms import DonacionForm, DonanteForm
 from django.db.models import Sum
 from fundacion_app.models import Donacion, Donante
 from django.contrib.auth.decorators import login_required
+from django.core.mail import send_mass_mail
 
 # Create your views here.
 
@@ -62,3 +63,30 @@ def registrar_donacion(request):
     else:
         form = DonacionForm()
     return render(request, 'donacion_form.html', {'form': form})
+
+@login_required
+def enviar_mail_masivo(request):
+    if request.method == 'POST':
+        tipo = request.POST.get('tipo_donante')
+        asunto = request.POST.get('asunto')
+        mensaje = request.POST.get('mensaje')
+        
+        # Filtramos los donantes que tienen mail y coinciden con el tipo
+        donantes = Donante.objects.filter(tipo_donante=tipo).exclude(mail='')
+        
+        # Preparamos la lista de correos
+        datatuple = []
+        for donante in donantes:
+            # Personalizamos un poco el mensaje si querés
+            cuerpo_personalizado = f"Hola {donante.nombre},\n\n{mensaje}"
+            datatuple.append((asunto, cuerpo_personalizado, 'tu-email@gmail.com', [donante.mail]))
+        
+        if datatuple:
+            send_mass_mail(datatuple)
+            messages.success(request, f'¡Se enviaron {len(datatuple)} correos a donantes {tipo.lower()}es!')
+        else:
+            messages.warning(request, 'No se encontraron donantes con email para este tipo.')
+            
+        return redirect('home')
+
+    return render(request, 'enviar_mail.html')

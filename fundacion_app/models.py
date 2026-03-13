@@ -9,7 +9,7 @@ class Donante(models.Model):
         ('Referido', 'Referido'),
         ('Difusion', 'Acción de Difusión'),
     ]
-    TIPO_CHOICES = [('Recurrente', 'Recurrente'), ('Eventual', 'Eventual')]
+    TIPO_CHOICES = [('Recurrente', 'Recurrente'), ('Eventual', 'Eventual'), ('UnicaVez', 'Única Vez')]
 
     # Campos de Gestión
     seguido_por = models.CharField(max_length=100, verbose_name="Quien lo sigue/llamador")

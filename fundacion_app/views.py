@@ -1,5 +1,6 @@
 from datetime import datetime
 import smtplib
+import traceback
 from django.contrib import messages
 from django.shortcuts import redirect, render
 from fundacion_app.forms import DonacionForm, DonanteForm
@@ -70,20 +71,20 @@ def registrar_donacion(request):
 def enviar_mail_masivo(request):
     if request.method == 'POST':
         try:
-            # Prueba básica: mandátelo a vos mismo primero
+            print("Iniciando intento de envío...") # Esto saldrá en los logs de Railway
             send_mail(
-                subject='Prueba de Conexión Fundación',
-                message='Si recibís esto, la configuración de Gmail es correcta.',
-                from_email=None, # Usa el EMAIL_HOST_USER por defecto
-                recipient_list=['tu-email@gmail.com'], # Poné tu mail real acá
+                'Prueba de Conexión',
+                'Mensaje de prueba',
+                None,
+                ['tu-email@gmail.com'], # Poné tu mail real
                 fail_silently=False,
             )
-            messages.success(request, "¡Mail de prueba enviado con éxito!")
-        except smtplib.SMTPAuthenticationError:
-            messages.error(request, "Error de autenticación: Revisá la App Password.")
+            messages.success(request, "¡Enviado!")
         except Exception as e:
-            messages.error(request, f"Ocurrió un error: {e}")
+            # Esto va a imprimir el error técnico real en tu pantalla
+            error_detalle = traceback.format_exc()
+            print(error_detalle) 
+            messages.error(request, f"Fallo técnico: {str(e)}")
             
         return redirect('home')
-    
     return render(request, 'enviar_mail.html')

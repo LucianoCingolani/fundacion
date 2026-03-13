@@ -1,6 +1,7 @@
 from django.contrib import messages
 from django.shortcuts import redirect, render
 from fundacion_app.forms import DonanteForm
+from fundacion_app.models import Donante
 
 # Create your views here.
 
@@ -19,3 +20,7 @@ def registrar_donante(request):
         form = DonanteForm()
     
     return render(request, 'donante_form.html', {'form': form})
+
+def lista_donantes(request):
+    donantes = Donante.objects.all().order_by('-fecha_alta') # Los más nuevos primero
+    return render(request, 'donantes_list.html', {'donantes': donantes})

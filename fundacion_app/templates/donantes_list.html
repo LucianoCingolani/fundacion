@@ -1,0 +1,70 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="flex justify-between items-center mb-6">
+    <div>
+        <h2 class="text-2xl font-bold text-slate-800">Panel de Donantes</h2>
+        <p class="text-slate-500 text-sm">Gestiona y visualiza todos los colaboradores de la fundación.</p>
+    </div>
+    <a href="{% url 'registrar_donante' %}" class="bg-blue-700 hover:bg-blue-800 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2">
+        <i data-lucide="plus-circle" class="w-4 h-4"></i> Nuevo Donante
+    </a>
+</div>
+
+<div class="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
+    <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+            <thead>
+                <tr class="bg-slate-50 border-b border-slate-100 text-slate-400 text-xs uppercase tracking-wider">
+                    <th class="px-6 py-4 font-semibold">Donante</th>
+                    <th class="px-6 py-4 font-semibold">Contacto</th>
+                    <th class="px-6 py-4 font-semibold">Tipo</th>
+                    <th class="px-6 py-4 font-semibold">Monto Mensual</th>
+                    <th class="px-6 py-4 font-semibold">Estado/Alta</th>
+                    <th class="px-6 py-4 font-semibold text-center">Acciones</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+                {% for donante in donantes %}
+                <tr class="hover:bg-slate-50 transition-colors">
+                    <td class="px-6 py-4">
+                        <div class="font-medium text-slate-800">{{ donante.trato }} {{ donante.nombre }} {{ donante.apellido }}</div>
+                        <div class="text-xs text-slate-400">{{ donante.empresa|default:"Particular" }}</div>
+                    </td>
+                    <td class="px-6 py-4">
+                        <div class="text-sm text-slate-600">{{ donante.mail }}</div>
+                        <div class="text-xs text-slate-400">{{ donante.celular }}</div>
+                    </td>
+                    <td class="px-6 py-4">
+                        <span class="px-2 py-1 rounded-full text-xs font-medium 
+                            {% if donante.tipo_donante == 'Recurrente' %} bg-purple-50 text-purple-700 {% else %} bg-blue-50 text-blue-700 {% endif %}">
+                            {{ donante.tipo_donante }}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 text-sm font-bold text-slate-700">
+                        ${{ donante.monto_mensual }}
+                    </td>
+                    <td class="px-6 py-4 text-sm text-slate-500">
+                        {{ donante.fecha_alta|date:"d/m/Y" }}
+                    </td>
+                    <td class="px-6 py-4 text-center">
+                        <button class="text-slate-400 hover:text-blue-600 transition-colors">
+                            <i data-lucide="edit-3" class="w-4 h-4"></i>
+                        </button>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="px-6 py-10 text-center text-slate-400">
+                        <div class="flex flex-col items-center">
+                            <i data-lucide="users" class="w-10 h-10 mb-2 opacity-20"></i>
+                            <p>No hay donantes cargados todavía.</p>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

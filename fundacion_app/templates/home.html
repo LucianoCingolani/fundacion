@@ -22,26 +22,6 @@
     <div class="card border-0 shadow-sm">
         <div class="card-body">
             <h5 class="card-title mb-3">Últimas Donaciones</h5>
-            <table class="table align-middle">
-                <thead class="table-light">
-                    <tr>
-                        <th>Donante</th>
-                        <th>Monto</th>
-                        <th>Fecha</th>
-                        <th>Acción</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for donacion in ultimas_donaciones %}
-                    <tr>
-                        <td>{{ donacion.donante.nombre }}</td>
-                        <td><strong>$ {{ donacion.monto }}</strong></td>
-                        <td>{{ donacion.fecha|date:"d/m/Y" }}</td>
-                        <td><a href="#" class="btn btn-sm btn-outline-secondary">Ver</a></td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
         </div>
     </div>
 </div>

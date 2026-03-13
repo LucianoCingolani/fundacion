@@ -29,7 +29,7 @@
                     <i data-lucide="layout-dashboard"></i> Dashboard
                 </a>
                 <a href="#" class="flex items-center gap-3 p-3 text-slate-600 hover:bg-blue-50 hover:text-blue-700 rounded-lg transition-all">
-                    <i data-lucide="users"></i> Donantes
+                    <i data-lucide="user-plus"></i> Donantes
                 </a>
                 <a href="#" class="flex items-center gap-3 p-3 text-slate-600 hover:bg-blue-50 hover:text-blue-700 rounded-lg transition-all">
                     <i data-lucide="hand-coins"></i> Donaciones
@@ -62,13 +62,20 @@
                         <i data-lucide="bell"></i>
                         <span class="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
                     </button>
-                    <button class="bg-blue-700 hover:bg-blue-800 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
-                        + Nueva Donación
-                    </button>
+                    <a href="{% url 'registrar_donante' %}" class="bg-blue-700 hover:bg-blue-800 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+                        + Nuevo Donante
+                    </a>
                 </div>
             </header>
 
             <div class="p-8">
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="mb-4 p-4 rounded-lg bg-green-50 text-green-700 border border-green-200">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
                 {% block content %}
                 {% endblock %}
             </div>

@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto bg-white p-8 rounded-xl shadow-sm border border-slate-100">
+    <div class="mb-8">
+        <h2 class="text-2xl font-bold text-slate-800">Registrar Nuevo Donante</h2>
+        <p class="text-slate-500 text-sm">Completa la información para dar de alta al donante en el sistema.</p>
+    </div>
+
+    <form method="post" class="space-y-6">
+        {% csrf_token %}
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-lg">
+            <div class="col-span-2 text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Información de Seguimiento</div>
+            <div><label class="block text-sm font-medium mb-1">Quien lo sigue</label>{{ form.seguido_por }}</div>
+            <div><label class="block text-sm font-medium mb-1">Origen de contacto</label>{{ form.origen }}</div>
+            <div><label class="block text-sm font-medium mb-1">Referente</label>{{ form.referente }}</div>
+            <div><label class="block text-sm font-medium mb-1">Segmentación</label>{{ form.segmentacion }}</div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="col-span-3 text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Datos Personales</div>
+            <div><label class="block text-sm font-medium mb-1">Trato</label>{{ form.trato }}</div>
+            <div><label class="block text-sm font-medium mb-1">Nombre</label>{{ form.nombre }}</div>
+            <div><label class="block text-sm font-medium mb-1">Apellido</label>{{ form.apellido }}</div>
+            <div><label class="block text-sm font-medium mb-1">Género</label>{{ form.genero }}</div>
+            <div><label class="block text-sm font-medium mb-1">Celular</label>{{ form.celular }}</div>
+            <div><label class="block text-sm font-medium mb-1">Email</label>{{ form.mail }}</div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="col-span-2 text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Empresa y Donación</div>
+            <div><label class="block text-sm font-medium mb-1">Empresa</label>{{ form.empresa }}</div>
+            <div><label class="block text-sm font-medium mb-1">Cargo</label>{{ form.cargo }}</div>
+            <div><label class="block text-sm font-medium mb-1">Tipo de Donante</label>{{ form.tipo_donante }}</div>
+            <div><label class="block text-sm font-medium mb-1">Monto Mensual</label>{{ form.monto_mensual }}</div>
+            <div><label class="block text-sm font-medium mb-1">Fecha de Alta</label>{{ form.fecha_alta }}</div>
+            <div><label class="block text-sm font-medium mb-1">Fecha de Baja (Opcional)</label>{{ form.fecha_baja }}</div>
+        </div>
+
+        <div class="flex justify-end gap-3 pt-6 border-t border-slate-100">
+            <button type="button" class="px-6 py-2 border border-slate-300 rounded-lg text-slate-600 hover:bg-slate-50 transition-colors">Cancelar</button>
+            <button type="submit" class="px-6 py-2 bg-blue-700 text-white rounded-lg hover:bg-blue-800 transition-colors shadow-lg shadow-blue-200">Guardar Donante</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

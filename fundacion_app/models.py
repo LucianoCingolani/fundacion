@@ -39,3 +39,22 @@ class Donante(models.Model):
 
     def __str__(self):
         return f"{self.nombre} {self.apellido}"
+    
+
+class Donacion(models.Model):
+    METODO_CHOICES = [
+        ('Transferencia', 'Transferencia'),
+        ('Efectivo', 'Efectivo'),
+        ('Tarjeta', 'Tarjeta'),
+        ('Otro', 'Otro'),
+    ]
+
+    donante = models.ForeignKey(Donante, on_delete=models.CASCADE, related_name='donaciones')
+    monto = models.DecimalField(max_digits=12, decimal_places=2)
+    fecha_pago = models.DateField()
+    metodo = models.CharField(max_length=50, choices=METODO_CHOICES)
+    comprobante = models.CharField(max_length=100, blank=True, help_text="Nro de operación o referencia")
+    notas = models.TextField(blank=True)
+
+    def __str__(self):
+        return f"{self.donante} - ${self.monto} ({self.fecha_pago})"

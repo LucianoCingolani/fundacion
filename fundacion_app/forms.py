@@ -1,5 +1,5 @@
 from django import forms
-from .models import Donante
+from .models import Donacion, Donante
 
 class DonanteForm(forms.ModelForm):
     class Meta:
@@ -24,3 +24,16 @@ class DonanteForm(forms.ModelForm):
         self.fields['trato'].widget.attrs.update({'class': select_class})
         self.fields['genero'].widget.attrs.update({'class': select_class})
         self.fields['tipo_donante'].widget.attrs.update({'class': select_class})
+
+class DonacionForm(forms.ModelForm):
+    class Meta:
+        model = Donacion
+        fields = ['donante', 'monto', 'fecha_pago', 'metodo', 'comprobante', 'notas']
+        widgets = {
+            'donante': forms.Select(attrs={'class': 'w-full p-2 border border-slate-300 rounded-lg bg-white'}),
+            'monto': forms.NumberInput(attrs={'class': 'w-full p-2 border border-slate-300 rounded-lg', 'placeholder': '0.00'}),
+            'fecha_pago': forms.DateInput(attrs={'type': 'date', 'class': 'w-full p-2 border border-slate-300 rounded-lg'}),
+            'metodo': forms.Select(attrs={'class': 'w-full p-2 border border-slate-300 rounded-lg bg-white'}),
+            'comprobante': forms.TextInput(attrs={'class': 'w-full p-2 border border-slate-300 rounded-lg'}),
+            'notas': forms.Textarea(attrs={'class': 'w-full p-2 border border-slate-300 rounded-lg', 'rows': 3}),
+        }

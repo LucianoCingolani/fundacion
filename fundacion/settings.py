@@ -107,9 +107,9 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/6.0/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = 'es-es'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'America/Argentina/Buenos_Aires'
 
 USE_I18N = True
 
@@ -132,3 +132,7 @@ STATICFILES_STORAGES = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 ALLOWED_HOSTS = ['localhost', 'web-production-58ef3.up.railway.app', '127.0.0.1']
 
 CSRF_TRUSTED_ORIGINS = ['http://localhost', 'https://web-production-58ef3.up.railway.app']
+
+LOGIN_REDIRECT_URL = 'home'  
+LOGOUT_REDIRECT_URL = 'login'
+LOGIN_URL = 'login'

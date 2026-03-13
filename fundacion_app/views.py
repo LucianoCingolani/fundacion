@@ -7,6 +7,7 @@ from django.db.models import Sum
 from fundacion_app.models import Donacion, Donante
 from django.contrib.auth.decorators import login_required
 from django.core.mail import send_mass_mail
+from django.core.mail import send_mail
 
 # Create your views here.
 

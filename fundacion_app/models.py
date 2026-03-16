@@ -58,3 +58,23 @@ class Donacion(models.Model):
 
     def __str__(self):
         return f"{self.donante} - ${self.monto} ({self.fecha_pago})"
+    
+class CategoriaGasto(models.Model):
+    nombre = models.CharField(max_length=100)
+    tipo = models.CharField(max_length=50, choices=[('F', 'Fijo'), ('V', 'Variable')])
+
+    def __clase__(self):
+        return self.nombre
+
+class Gasto(models.Model):
+    fecha = models.DateField()
+    descripcion = models.CharField(max_length=255)
+    categoria = models.ForeignKey(CategoriaGasto, on_delete=models.PROTECT)
+    monto = models.DecimalField(max_digits=12, decimal_places=2)
+    
+    # Útil para el contador: ¿Se pagó o está pendiente?
+    pagado = models.BooleanField(default=True)
+    comprobante = models.FileField(upload_to='gastos/comprobantes/', null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.fecha} - {self.descripcion} - ${self.monto}"

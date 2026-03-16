@@ -21,7 +21,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm text-slate-500 font-medium">Recaudación Marzo</p>
-                    <h3 class="text-3xl font-bold text-emerald-600">$ {{ recaudacion_mes }}</h3>
+                    <h3 class="text-3xl font-bold text-emerald-600">$ {{ recaudacion_mes|floatformat:2 }}</h3>
                 </div>
                 <div class="bg-emerald-50 p-3 rounded-lg text-emerald-600">
                     <i data-lucide="trending-up"></i>
@@ -51,7 +51,7 @@
                             {{ donacion.donante.nombre }} {{ donacion.donante.apellido }}
                         </td>
                         <td class="px-6 py-4 text-center font-bold text-emerald-600">
-                            $ {{ donacion.monto }}
+                            $ {{ donacion.monto|floatformat:2 }}
                         </td>
                         <td class="px-6 py-4 text-slate-500 text-sm">
                             {{ donacion.fecha_pago|date:"d M, Y" }}

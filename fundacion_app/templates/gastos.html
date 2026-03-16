@@ -1,0 +1,218 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="p-6 bg-gray-50 min-h-screen">
+    <div class="flex justify-between items-center mb-8">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-800">Flujo de Caja</h1>
+            <p class="text-gray-500">Administra los gastos y movimientos de la empresa.</p>
+        </div>
+        <div class="flex space-x-3">
+            <button onclick="toggleModalChart()" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition shadow-md">
+                📊 Ver Resumen
+            </button>
+            <button onclick="toggleModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg transition shadow-md">
+                + Nuevo Gasto
+            </button>
+            <button class="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 transition">
+                Exportar Excel
+            </button>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div class="bg-white p-6 rounded-xl shadow-sm border-l-4 border-blue-500">
+            <p class="text-sm text-gray-500 uppercase font-semibold">Gastos del Mes</p>
+            <h2 class="text-2xl font-bold text-gray-800 mt-1">${{ total_gastos }}</h2>
+        </div>
+        <div class="bg-white p-6 rounded-xl shadow-sm border-l-4 border-purple-500">
+            <p class="text-sm text-gray-500 uppercase font-semibold">Pendientes de Pago</p>
+            <h2 class="text-2xl font-bold text-gray-800 mt-1">${{ pendientes_pago }}</h2> </div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+        <div class="p-4 border-b border-gray-100 flex justify-between items-center">
+            <h3 class="font-bold text-gray-700">Últimos Movimientos</h3>
+            <span class="text-xs font-medium bg-blue-100 text-blue-600 px-2 py-1 rounded-full">Marzo 2026</span>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left">
+                <thead class="bg-gray-50 text-gray-400 text-xs uppercase">
+                    <tr>
+                        <th class="px-6 py-3">Fecha</th>
+                        <th class="px-6 py-3">Descripción</th>
+                        <th class="px-6 py-3">Categoría</th>
+                        <th class="px-6 py-3">Estado</th>
+                        <th class="px-6 py-3 text-right">Monto</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    {% for gasto in ultimos_gastos %}
+                    <tr class="hover:bg-gray-50 transition">
+                        <td class="px-6 py-4 text-sm text-gray-600">{{ gasto.fecha }}</td>
+                        <td class="px-6 py-4 text-sm font-medium text-gray-800">{{ gasto.descripcion }}</td>
+                        <td class="px-6 py-4 text-sm">
+                            <span class="bg-purple-50 text-purple-600 px-2 py-1 rounded-md text-xs font-semibold">
+                                {{ gasto.categoria.nombre }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 text-sm">
+                            {% if gasto.pagado %}
+                                <span class="text-green-500 flex items-center">
+                                    <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"></path></svg>
+                                    Pagado
+                                </span>
+                            {% else %}
+                                <span class="text-yellow-500 flex items-center">
+                                    <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"></path></svg>
+                                    Pendiente
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 text-sm font-bold text-right text-gray-800">
+                            ${{ gasto.monto }}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="px-6 py-10 text-center text-gray-400">No hay gastos registrados este mes.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div id="modalGasto" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden flex items-center justify-center z-50">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden animate-fade-in-down">
+        <div class="p-6 border-b border-gray-100 flex justify-between items-center">
+            <h3 class="text-xl font-bold text-gray-800">Registrar Gasto</h3>
+            <button onclick="toggleModal()" class="text-gray-400 hover:text-gray-600">&times;</button>
+        </div>
+        
+        <form action="{% url 'crear_gasto' %}" method="POST" class="p-6 space-y-4">
+            {% csrf_token %}
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Descripción</label>
+                <input type="text" name="descripcion" required class="w-full mt-1 p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500">
+            </div>
+            
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Monto</label>
+                    <input type="number" step="0.01" name="monto" required class="w-full mt-1 p-2 border border-gray-300 rounded-md">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Fecha</label>
+                    <input type="date" name="fecha" value="{{ today|date:'Y-m-d' }}" required class="w-full mt-1 p-2 border border-gray-300 rounded-md">
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Categoría</label>
+                <select name="categoria" class="w-full mt-1 p-2 border border-gray-300 rounded-md">
+                    {% for cat in categorias %}
+                        <option value="{{ cat.id }}">{{ cat.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="flex items-center">
+                <input type="checkbox" name="pagado" id="pagado" checked class="h-4 w-4 text-indigo-600 border-gray-300 rounded">
+                <label for="pagado" class="ml-2 block text-sm text-gray-700">Ya fue pagado</label>
+            </div>
+
+            <div class="pt-4 flex space-x-3">
+                <button type="button" onclick="toggleModal()" class="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200">Cancelar</button>
+                <button type="submit" class="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">Guardar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="modalChart" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden flex items-center justify-center z-50">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden">
+        <div class="p-6 border-b border-gray-100 flex justify-between items-center">
+            <h3 class="text-xl font-bold text-gray-800">Distribución de Gastos</h3>
+            <button onclick="toggleModalChart()" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
+        </div>
+        <div class="p-8" style="position: relative; height:300px; width:100%;">
+            <canvas id="expensesChartModal"></canvas>
+        </div>
+        <div class="p-4 bg-gray-50 text-center">
+            <p class="text-sm text-gray-500">Basado en los gastos registrados este mes.</p>
+        </div>
+    </div>
+</div>
+
+<script>
+
+let myChart; 
+
+function toggleModalChart() {
+    const modal = document.getElementById('modalChart');
+    
+    if (modal.classList.contains('hidden')) {
+        // Abrir modal
+        modal.classList.remove('hidden');
+        
+        // LE DAMOS UN TIEMPO PARA QUE EL DOM SE RENDERICE
+        setTimeout(() => {
+            renderizarGrafico();
+        }, 100); 
+    } else {
+        // Cerrar modal
+        modal.classList.add('hidden');
+    }
+}
+
+function renderizarGrafico() {
+    const canvas = document.getElementById('expensesChartModal');
+    if (!canvas) return; // Seguridad
+
+    const ctx = canvas.getContext('2d');
+    
+    if (myChart) {
+        myChart.destroy();
+    }
+
+    const labels = {{ chart_labels|safe }};
+    const dataValues = {{ chart_values|safe }};
+
+    // Si no hay datos, mostramos algo para que no quede vacío
+    if (labels.length === 0) {
+        console.warn("No hay datos para el gráfico");
+        // Opcional: podrías poner un texto en el canvas
+        return;
+    }
+
+    myChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: dataValues,
+                backgroundColor: ['#4F46E5', '#8B5CF6', '#3B82F6', '#10B981', '#F59E0B'],
+                hoverOffset: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false, // IMPORTANTE dentro de modales
+            plugins: {
+                legend: { position: 'bottom' }
+            }
+        }
+    });
+}
+</script>
+
+<script>
+function toggleModal() {
+    const modal = document.getElementById('modalGasto');
+    modal.classList.toggle('hidden');
+}
+</script>
+
+{% endblock %}

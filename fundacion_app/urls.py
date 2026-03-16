@@ -10,4 +10,6 @@ urlpatterns = [
     path('logout/', auth_views.LogoutView.as_view(), name='logout'),
     path('donaciones/nueva/', views.registrar_donacion, name='registrar_donacion'),
     path('comunicacion/enviar/', views.enviar_mail_masivo, name='enviar_mail_masivo'),
+    path('cashflow/', views.dashboard_cashflow, name='dashboard_cashflow'),
+    path('cashflow/nuevo/', views.crear_gasto, name='crear_gasto'),
 ]

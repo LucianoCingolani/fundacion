@@ -1,13 +1,13 @@
 from datetime import datetime
+import json
 import smtplib
 import traceback
 from django.contrib import messages
 from django.shortcuts import redirect, render
 from fundacion_app.forms import DonacionForm, DonanteForm
 from django.db.models import Sum
-from fundacion_app.models import Donacion, Donante
+from fundacion_app.models import CategoriaGasto, Donacion, Donante, Gasto
 from django.contrib.auth.decorators import login_required
-from django.core.mail import send_mass_mail
 from django.core.mail import send_mail
 
 # Create your views here.
@@ -71,20 +71,73 @@ def registrar_donacion(request):
 def enviar_mail_masivo(request):
     if request.method == 'POST':
         try:
-            print("Iniciando intento de envío...") # Esto saldrá en los logs de Railway
-            send_mail(
-                'Prueba de Conexión',
-                'Mensaje de prueba',
-                None,
-                ['tu-email@gmail.com'], # Poné tu mail real
-                fail_silently=False,
-            )
-            messages.success(request, "¡Enviado!")
-        except Exception as e:
-            # Esto va a imprimir el error técnico real en tu pantalla
-            error_detalle = traceback.format_exc()
-            print(error_detalle) 
-            messages.error(request, f"Fallo técnico: {str(e)}")
+            tipo = request.POST.get('tipo_donante')
+            asunto = request.POST.get('asunto')
+            mensaje_base = request.POST.get('mensaje')
             
-        return redirect('home')
+            donantes = Donante.objects.filter(tipo_donante=tipo)
+            
+            for donante in donantes:
+                if donante.mail: 
+                    send_mail(
+                        asunto, 
+                        f"Hola {donante.nombre}\n\n{mensaje_base}", 
+                        None, 
+                        [donante.mail]
+                    )
+            
+            messages.success(request, "Correos enviados con éxito.")
+            return redirect('home')
+            
+        except Exception as e:
+            print(f"ERROR DETECTADO: {e}")
+            messages.error(request, f"Hubo un error al enviar: {e}")
+            return redirect('home') # Es mejor redirigir con el mensaje de error que dejar la pantalla amarilla
+
     return render(request, 'enviar_mail.html')
+
+def dashboard_cashflow(request):
+    mes_actual = datetime.now().month
+    total_gastos = Gasto.objects.filter(fecha__month=mes_actual).aggregate(Sum('monto'))['monto__sum'] or 0
+    gastos_por_categoria = Gasto.objects.filter(fecha__month=mes_actual).values('categoria__nombre').annotate(total=Sum('monto'))
+    categorias = CategoriaGasto.objects.all()
+    pendientes_pago = Gasto.objects.filter(fecha__month=mes_actual, pagado=False).aggregate(Sum('monto'))['monto__sum'] or 0
+    gastos_query = Gasto.objects.values('categoria__nombre').annotate(total=Sum('monto'))
+
+    labels = [item['categoria__nombre'] for item in gastos_query]
+    values = [float(item['total']) for item in gastos_query]
+
+    context = {
+        'total_gastos': total_gastos,
+        'gastos_por_categoria': gastos_por_categoria,
+        'ultimos_gastos': Gasto.objects.all().order_by('-fecha')[:10],
+        'categorias': categorias,
+        'pendientes_pago': pendientes_pago,
+        'chart_labels': json.dumps(labels),
+        'chart_values': json.dumps(values),
+    }
+    return render(request, 'gastos.html', context)
+
+def crear_gasto(request):
+    if request.method == 'POST':
+        try:
+            descripcion = request.POST.get('descripcion')
+            categoria_id = request.POST.get('categoria')
+            monto = request.POST.get('monto')
+            fecha = request.POST.get('fecha')
+            pagado = request.POST.get('pagado') == 'on' # Checkbox logic
+
+            categoria = CategoriaGasto.objects.get(id=categoria_id)
+
+            Gasto.objects.create(
+                descripcion=descripcion,
+                categoria=categoria,
+                monto=monto,
+                fecha=fecha,
+                pagado=pagado
+            )
+            messages.success(request, "Gasto registrado correctamente.")
+        except Exception as e:
+            messages.error(request, f"Error al registrar: {e}")
+            
+    return redirect('dashboard_cashflow') # Nombre de tu url de cashflow

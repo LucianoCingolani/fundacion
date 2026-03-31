@@ -11,5 +11,7 @@ urlpatterns = [
     path('donaciones/nueva/', views.registrar_donacion, name='registrar_donacion'),
     path('comunicacion/enviar/', views.enviar_mail_masivo, name='enviar_mail_masivo'),
     path('cashflow/', views.dashboard_cashflow, name='dashboard_cashflow'),
-    path('cashflow/nuevo/', views.crear_gasto, name='crear_gasto'),
+    path('cashflow/<int:hogar_id>/', views.dashboard_cashflow, name='dashboard_cashflow_hogar'),
+    path('cashflow/movimiento/nuevo/', views.crear_movimiento, name='crear_movimiento'),
+    path('cashflow/movimiento/<int:pk>/eliminar/', views.eliminar_movimiento, name='eliminar_movimiento'),
 ]

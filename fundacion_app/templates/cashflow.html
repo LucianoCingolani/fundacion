@@ -1,0 +1,302 @@
+{% extends 'base.html' %}
+
+{% block title %}Flujo de Caja | Fundación{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- Header -->
+    <div class="flex justify-between items-center">
+        <div>
+            <h1 class="text-2xl font-bold text-slate-800">Flujo de Caja</h1>
+            <p class="text-slate-500 text-sm">Ingresos y egresos por hogar</p>
+        </div>
+        {% if hogar_activo %}
+        <button onclick="toggleModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm">
+            + Nuevo Movimiento
+        </button>
+        {% endif %}
+    </div>
+
+    {% if not hogares %}
+        <div class="bg-white rounded-xl border border-slate-200 p-12 text-center">
+            <p class="text-slate-400">No hay hogares configurados. Creá uno desde el panel de administración.</p>
+        </div>
+    {% else %}
+
+    <!-- Tabs de hogares -->
+    <div class="border-b border-slate-200">
+        <nav class="flex space-x-1" aria-label="Tabs">
+            {% for hogar in hogares %}
+            <a href="{% url 'dashboard_cashflow_hogar' hogar.id %}"
+               class="px-5 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap
+                      {% if hogar.id == hogar_activo.id %}
+                        border-indigo-600 text-indigo-600
+                      {% else %}
+                        border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300
+                      {% endif %}">
+                {{ hogar.nombre }}
+            </a>
+            {% endfor %}
+        </nav>
+    </div>
+
+    <!-- Filtro de mes/año -->
+    <form method="GET" class="flex items-center gap-3">
+        <label class="text-sm text-slate-600 font-medium">Período:</label>
+        <select name="mes" class="text-sm border border-slate-300 rounded-lg px-3 py-1.5 focus:ring-indigo-500 focus:border-indigo-500">
+            {% for m in "123456789101112"|make_list %}{% endfor %}
+            <option value="1"  {% if mes == 1  %}selected{% endif %}>Enero</option>
+            <option value="2"  {% if mes == 2  %}selected{% endif %}>Febrero</option>
+            <option value="3"  {% if mes == 3  %}selected{% endif %}>Marzo</option>
+            <option value="4"  {% if mes == 4  %}selected{% endif %}>Abril</option>
+            <option value="5"  {% if mes == 5  %}selected{% endif %}>Mayo</option>
+            <option value="6"  {% if mes == 6  %}selected{% endif %}>Junio</option>
+            <option value="7"  {% if mes == 7  %}selected{% endif %}>Julio</option>
+            <option value="8"  {% if mes == 8  %}selected{% endif %}>Agosto</option>
+            <option value="9"  {% if mes == 9  %}selected{% endif %}>Septiembre</option>
+            <option value="10" {% if mes == 10 %}selected{% endif %}>Octubre</option>
+            <option value="11" {% if mes == 11 %}selected{% endif %}>Noviembre</option>
+            <option value="12" {% if mes == 12 %}selected{% endif %}>Diciembre</option>
+        </select>
+        <input type="number" name="anio" id="inputAnio" min="2020" max="2099"
+               class="text-sm border border-slate-300 rounded-lg px-3 py-1.5 w-24 focus:ring-indigo-500 focus:border-indigo-500">
+        <script>
+            document.getElementById('inputAnio').value = {{ anio }} || new Date().getFullYear();
+        </script>
+        <button type="submit" class="text-sm bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-1.5 rounded-lg transition">
+            Filtrar
+        </button>
+    </form>
+
+    <!-- Tarjetas de resumen -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <div class="bg-white p-5 rounded-xl border border-slate-200 border-l-4 border-l-green-500">
+            <p class="text-xs text-slate-500 uppercase font-semibold tracking-wide">Total Ingresos</p>
+            <h2 class="text-2xl font-bold text-slate-800 mt-1">${{ total_ingresos|floatformat:2 }}</h2>
+        </div>
+        <div class="bg-white p-5 rounded-xl border border-slate-200 border-l-4 border-l-red-500">
+            <p class="text-xs text-slate-500 uppercase font-semibold tracking-wide">Total Egresos</p>
+            <h2 class="text-2xl font-bold text-slate-800 mt-1">${{ total_egresos|floatformat:2 }}</h2>
+        </div>
+        <div class="bg-white p-5 rounded-xl border border-slate-200 border-l-4
+                    {% if balance >= 0 %}border-l-blue-500{% else %}border-l-red-600{% endif %}">
+            <p class="text-xs text-slate-500 uppercase font-semibold tracking-wide">Balance</p>
+            <h2 class="text-2xl font-bold mt-1 {% if balance >= 0 %}text-blue-700{% else %}text-red-600{% endif %}">
+                {% if balance >= 0 %}+{% endif %}${{ balance|floatformat:2 }}
+            </h2>
+        </div>
+    </div>
+
+    <!-- Tabla de movimientos -->
+    <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
+        <div class="px-5 py-4 border-b border-slate-100 flex justify-between items-center">
+            <h3 class="font-semibold text-slate-700">Movimientos — {{ hogar_activo.nombre }}</h3>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left">
+                <thead class="bg-slate-50 text-slate-400 text-xs uppercase">
+                    <tr>
+                        <th class="px-5 py-3">Fecha</th>
+                        <th class="px-5 py-3">Descripción</th>
+                        <th class="px-5 py-3">Tipo</th>
+                        <th class="px-5 py-3">Categoría</th>
+                        <th class="px-5 py-3">Método</th>
+                        <th class="px-5 py-3">Estado</th>
+                        <th class="px-5 py-3 text-right">Monto</th>
+                        <th class="px-5 py-3"></th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for mov in movimientos %}
+                    <tr class="hover:bg-slate-50 transition">
+                        <td class="px-5 py-4 text-sm text-slate-500">{{ mov.fecha }}</td>
+                        <td class="px-5 py-4 text-sm font-medium text-slate-800">{{ mov.descripcion }}</td>
+                        <td class="px-5 py-4 text-sm">
+                            {% if mov.tipo == 'ingreso' %}
+                                <span class="bg-green-50 text-green-700 px-2 py-1 rounded-md text-xs font-semibold">Ingreso</span>
+                            {% else %}
+                                <span class="bg-red-50 text-red-700 px-2 py-1 rounded-md text-xs font-semibold">Egreso</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-5 py-4 text-sm">
+                            {% if mov.categoria %}
+                                <span class="bg-purple-50 text-purple-600 px-2 py-1 rounded-md text-xs font-semibold">{{ mov.categoria.nombre }}</span>
+                            {% else %}
+                                <span class="text-slate-300">—</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-5 py-4 text-sm text-slate-500">{{ mov.metodo_pago }}</td>
+                        <td class="px-5 py-4 text-sm">
+                            {% if mov.pagado %}
+                                <span class="text-green-600 flex items-center gap-1">
+                                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"></path></svg>
+                                    Pagado
+                                </span>
+                            {% else %}
+                                <span class="text-amber-500 flex items-center gap-1">
+                                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"></path></svg>
+                                    Pendiente
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td class="px-5 py-4 text-sm font-bold text-right
+                                   {% if mov.tipo == 'ingreso' %}text-green-700{% else %}text-red-600{% endif %}">
+                            {% if mov.tipo == 'ingreso' %}+{% else %}-{% endif %}${{ mov.monto|floatformat:2 }}
+                        </td>
+                        <td class="px-5 py-4 text-right">
+                            <form action="{% url 'eliminar_movimiento' mov.pk %}" method="POST"
+                                  onsubmit="return confirm('¿Eliminar este movimiento?')">
+                                {% csrf_token %}
+                                <button type="submit" class="text-slate-300 hover:text-red-500 transition">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="px-5 py-12 text-center text-slate-400 text-sm">
+                            No hay movimientos registrados para este período.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    {% endif %}
+</div>
+
+<!-- Modal: Nuevo Movimiento -->
+{% if hogar_activo %}
+<div id="modalMovimiento" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden items-center justify-center z-50 flex">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden">
+        <div class="p-5 border-b border-slate-100 flex justify-between items-center">
+            <h3 class="text-lg font-bold text-slate-800">Nuevo Movimiento — {{ hogar_activo.nombre }}</h3>
+            <button onclick="toggleModal()" class="text-slate-400 hover:text-slate-600 text-2xl leading-none">&times;</button>
+        </div>
+
+        <form action="{% url 'crear_movimiento' %}" method="POST" class="p-5 space-y-4">
+            {% csrf_token %}
+            <input type="hidden" name="hogar" value="{{ hogar_activo.id }}">
+
+            <!-- Tipo -->
+            <div>
+                <label class="block text-sm font-medium text-slate-700 mb-2">Tipo</label>
+                <div class="flex gap-3">
+                    <label class="flex-1 flex items-center gap-2 p-3 border rounded-lg cursor-pointer has-[:checked]:border-green-500 has-[:checked]:bg-green-50">
+                        <input type="radio" name="tipo" value="ingreso" class="text-green-600" onchange="toggleCategoria(this.value)">
+                        <span class="text-sm font-medium">Ingreso</span>
+                    </label>
+                    <label class="flex-1 flex items-center gap-2 p-3 border rounded-lg cursor-pointer has-[:checked]:border-red-500 has-[:checked]:bg-red-50">
+                        <input type="radio" name="tipo" value="egreso" class="text-red-600" checked onchange="toggleCategoria(this.value)">
+                        <span class="text-sm font-medium">Egreso</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Categoría (filtrada según tipo) -->
+            <div id="categoriaWrapper">
+                <label class="block text-sm font-medium text-slate-700">Categoría</label>
+                <select name="categoria" id="selectCategoria" class="w-full mt-1 p-2 border border-slate-300 rounded-lg text-sm focus:ring-indigo-500 focus:border-indigo-500">
+                    <option value="">— Sin categoría —</option>
+                    <optgroup id="optIngreso" label="Ingresos">
+                        {% for cat in categorias_ingreso %}
+                            <option value="{{ cat.id }}" data-tipo="ingreso">{{ cat.nombre }}</option>
+                        {% endfor %}
+                    </optgroup>
+                    <optgroup id="optEgreso" label="Egresos">
+                        {% for cat in categorias_egreso %}
+                            <option value="{{ cat.id }}" data-tipo="egreso">{{ cat.nombre }}</option>
+                        {% endfor %}
+                    </optgroup>
+                </select>
+            </div>
+
+            <!-- Descripción -->
+            <div>
+                <label class="block text-sm font-medium text-slate-700">Descripción</label>
+                <input type="text" name="descripcion" required
+                       class="w-full mt-1 p-2 border border-slate-300 rounded-lg text-sm focus:ring-indigo-500 focus:border-indigo-500">
+            </div>
+
+            <!-- Monto y Fecha -->
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700">Monto</label>
+                    <input type="number" step="0.01" name="monto" required
+                           class="w-full mt-1 p-2 border border-slate-300 rounded-lg text-sm focus:ring-indigo-500 focus:border-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700">Fecha</label>
+                    <input type="date" name="fecha" required
+                           class="w-full mt-1 p-2 border border-slate-300 rounded-lg text-sm focus:ring-indigo-500 focus:border-indigo-500">
+                </div>
+            </div>
+
+            <!-- Método de pago -->
+            <div>
+                <label class="block text-sm font-medium text-slate-700">Método de pago</label>
+                <select name="metodo_pago" class="w-full mt-1 p-2 border border-slate-300 rounded-lg text-sm focus:ring-indigo-500 focus:border-indigo-500">
+                    <option value="Transferencia">Transferencia</option>
+                    <option value="Efectivo">Efectivo</option>
+                    <option value="Tarjeta">Tarjeta</option>
+                    <option value="Otro">Otro</option>
+                </select>
+            </div>
+
+            <!-- Notas -->
+            <div>
+                <label class="block text-sm font-medium text-slate-700">Notas <span class="text-slate-400 font-normal">(opcional)</span></label>
+                <textarea name="notas" rows="2"
+                          class="w-full mt-1 p-2 border border-slate-300 rounded-lg text-sm focus:ring-indigo-500 focus:border-indigo-500"></textarea>
+            </div>
+
+            <!-- Pagado -->
+            <div class="flex items-center gap-2">
+                <input type="checkbox" name="pagado" id="pagado" checked
+                       class="h-4 w-4 text-indigo-600 border-slate-300 rounded">
+                <label for="pagado" class="text-sm text-slate-700">Ya fue pagado / acreditado</label>
+            </div>
+
+            <div class="pt-2 flex gap-3">
+                <button type="button" onclick="toggleModal()"
+                        class="flex-1 px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 text-sm">
+                    Cancelar
+                </button>
+                <button type="submit"
+                        class="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm font-medium">
+                    Guardar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function toggleModal() {
+    const modal = document.getElementById('modalMovimiento');
+    modal.classList.toggle('hidden');
+}
+
+function toggleCategoria(tipo) {
+    const optIngreso = document.getElementById('optIngreso');
+    const optEgreso = document.getElementById('optEgreso');
+    const select = document.getElementById('selectCategoria');
+
+    // Mostrar solo el grupo correspondiente
+    optIngreso.style.display = tipo === 'ingreso' ? '' : 'none';
+    optEgreso.style.display = tipo === 'egreso' ? '' : 'none';
+
+    // Resetear selección al cambiar tipo
+    select.value = '';
+}
+
+// Estado inicial: egreso está checked
+toggleCategoria('egreso');
+</script>
+{% endif %}
+
+{% endblock %}

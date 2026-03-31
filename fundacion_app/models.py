@@ -1,5 +1,15 @@
 from django.db import models
 
+class Hogares(models.Model):
+    nombre = models.CharField(max_length=255)
+    direccion = models.CharField(max_length=255)
+    telefono = models.CharField(max_length=50, null=True, blank=True)
+    email = models.EmailField(null=True, blank=True)
+    contacto = models.CharField(max_length=255, null=True, blank=True)
+
+    def __str__(self):
+        return self.nombre
+
 class Donante(models.Model):
     TRATO_CHOICES = [('Sr', 'Sr.'), ('Sra', 'Sra.'), ('Sres', 'Sres.')]
     GENERO_CHOICES = [('H', 'Hombre'), ('M', 'Mujer'), ('O', 'Otro')]
@@ -60,10 +70,13 @@ class Donacion(models.Model):
         return f"{self.donante} - ${self.monto} ({self.fecha_pago})"
     
 class CategoriaGasto(models.Model):
-    nombre = models.CharField(max_length=100)
-    tipo = models.CharField(max_length=50, choices=[('F', 'Fijo'), ('V', 'Variable')])
+    TIPO_MOVIMIENTO_CHOICES = [('ingreso', 'Ingreso'), ('egreso', 'Egreso')]
 
-    def __clase__(self):
+    nombre = models.CharField(max_length=100)
+    tipo_movimiento = models.CharField(max_length=10, choices=TIPO_MOVIMIENTO_CHOICES, default='egreso')
+    tipo = models.CharField(max_length=50, choices=[('F', 'Fijo'), ('V', 'Variable')], blank=True)
+
+    def __str__(self):
         return self.nombre
 
 class Gasto(models.Model):
@@ -71,10 +84,41 @@ class Gasto(models.Model):
     descripcion = models.CharField(max_length=255)
     categoria = models.ForeignKey(CategoriaGasto, on_delete=models.PROTECT)
     monto = models.DecimalField(max_digits=12, decimal_places=2)
-    
+
     # Útil para el contador: ¿Se pagó o está pendiente?
     pagado = models.BooleanField(default=True)
     comprobante = models.FileField(upload_to='gastos/comprobantes/', null=True, blank=True)
 
     def __str__(self):
         return f"{self.fecha} - {self.descripcion} - ${self.monto}"
+
+
+class MovimientoCaja(models.Model):
+    TIPO_CHOICES = [
+        ('ingreso', 'Ingreso'),
+        ('egreso', 'Egreso'),
+    ]
+    METODO_CHOICES = [
+        ('Transferencia', 'Transferencia'),
+        ('Efectivo', 'Efectivo'),
+        ('Tarjeta', 'Tarjeta'),
+        ('Otro', 'Otro'),
+    ]
+
+    hogar = models.ForeignKey(Hogares, on_delete=models.PROTECT, related_name='movimientos', null=True, blank=True)
+    tipo = models.CharField(max_length=10, choices=TIPO_CHOICES)
+    fecha = models.DateField()
+    descripcion = models.CharField(max_length=255)
+    categoria = models.ForeignKey(CategoriaGasto, on_delete=models.PROTECT, null=True, blank=True)
+    monto = models.DecimalField(max_digits=12, decimal_places=2)
+    metodo_pago = models.CharField(max_length=50, choices=METODO_CHOICES, default='Transferencia')
+    pagado = models.BooleanField(default=True)
+    comprobante = models.FileField(upload_to='cashflow/comprobantes/', null=True, blank=True)
+    notas = models.TextField(blank=True)
+    gasto_origen_id = models.IntegerField(null=True, blank=True, editable=False)
+
+    class Meta:
+        ordering = ['-fecha']
+
+    def __str__(self):
+        return f"{self.get_tipo_display()} | {self.hogar} | ${self.monto} ({self.fecha})"

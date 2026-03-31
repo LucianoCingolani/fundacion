@@ -1,12 +1,13 @@
 from datetime import datetime
+from decimal import Decimal
 import json
 import smtplib
 import traceback
 from django.contrib import messages
-from django.shortcuts import redirect, render
+from django.shortcuts import get_object_or_404, redirect, render
 from fundacion_app.forms import DonacionForm, DonanteForm
-from django.db.models import Sum
-from fundacion_app.models import CategoriaGasto, Donacion, Donante, Gasto
+from django.db.models import Q, Sum
+from fundacion_app.models import CategoriaGasto, Donacion, Donante, Gasto, Hogares, MovimientoCaja
 from django.contrib.auth.decorators import login_required
 from django.core.mail import send_mail
 
@@ -96,48 +97,95 @@ def enviar_mail_masivo(request):
 
     return render(request, 'enviar_mail.html')
 
-def dashboard_cashflow(request):
-    mes_actual = datetime.now().month
-    total_gastos = Gasto.objects.filter(fecha__month=mes_actual).aggregate(Sum('monto'))['monto__sum'] or 0
-    gastos_por_categoria = Gasto.objects.filter(fecha__month=mes_actual).values('categoria__nombre').annotate(total=Sum('monto'))
-    categorias = CategoriaGasto.objects.all()
-    pendientes_pago = Gasto.objects.filter(fecha__month=mes_actual, pagado=False).aggregate(Sum('monto'))['monto__sum'] or 0
-    gastos_query = Gasto.objects.values('categoria__nombre').annotate(total=Sum('monto'))
+@login_required
+def dashboard_cashflow(request, hogar_id=None):
+    hogares = Hogares.objects.order_by('nombre')
 
-    labels = [item['categoria__nombre'] for item in gastos_query]
-    values = [float(item['total']) for item in gastos_query]
+    if not hogares.exists():
+        return render(request, 'cashflow.html', {'hogares': [], 'hogar_activo': None})
+
+    if hogar_id:
+        hogar_activo = get_object_or_404(Hogares, pk=hogar_id)
+    else:
+        hogar_activo = hogares.first()
+
+    mes = int(request.GET.get('mes', datetime.now().month))
+    anio = int(request.GET.get('anio', datetime.now().year))
+
+    movimientos_qs = MovimientoCaja.objects.filter(
+        hogar=hogar_activo,
+        fecha__month=mes,
+        fecha__year=anio,
+    ).select_related('categoria').order_by('-fecha')
+
+    totals = movimientos_qs.aggregate(
+        total_ingresos=Sum('monto', filter=Q(tipo='ingreso')),
+        total_egresos=Sum('monto', filter=Q(tipo='egreso')),
+    )
+    total_ingresos = totals['total_ingresos'] or Decimal('0.00')
+    total_egresos = totals['total_egresos'] or Decimal('0.00')
+    balance = total_ingresos - total_egresos
+
+    categorias_ingreso = CategoriaGasto.objects.filter(tipo_movimiento='ingreso').order_by('nombre')
+    categorias_egreso = CategoriaGasto.objects.filter(tipo_movimiento='egreso').order_by('nombre')
 
     context = {
-        'total_gastos': total_gastos,
-        'gastos_por_categoria': gastos_por_categoria,
-        'ultimos_gastos': Gasto.objects.all().order_by('-fecha')[:10],
-        'categorias': categorias,
-        'pendientes_pago': pendientes_pago,
-        'chart_labels': json.dumps(labels),
-        'chart_values': json.dumps(values),
+        'hogares': hogares,
+        'hogar_activo': hogar_activo,
+        'movimientos': movimientos_qs,
+        'total_ingresos': total_ingresos,
+        'total_egresos': total_egresos,
+        'balance': balance,
+        'categorias_ingreso': categorias_ingreso,
+        'categorias_egreso': categorias_egreso,
+        'mes': mes,
+        'anio': anio,
     }
-    return render(request, 'gastos.html', context)
+    return render(request, 'cashflow.html', context)
 
-def crear_gasto(request):
+
+@login_required
+def crear_movimiento(request):
     if request.method == 'POST':
+        hogar_id = request.POST.get('hogar')
         try:
+            tipo = request.POST.get('tipo')
             descripcion = request.POST.get('descripcion')
-            categoria_id = request.POST.get('categoria')
             monto = request.POST.get('monto')
             fecha = request.POST.get('fecha')
-            pagado = request.POST.get('pagado') == 'on' # Checkbox logic
+            pagado = request.POST.get('pagado') == 'on'
+            metodo_pago = request.POST.get('metodo_pago', 'Transferencia')
+            notas = request.POST.get('notas', '')
+            categoria_id = request.POST.get('categoria') or None
 
-            categoria = CategoriaGasto.objects.get(id=categoria_id)
+            hogar = get_object_or_404(Hogares, pk=hogar_id)
+            categoria = CategoriaGasto.objects.get(pk=categoria_id) if categoria_id else None
 
-            Gasto.objects.create(
+            MovimientoCaja.objects.create(
+                hogar=hogar,
+                tipo=tipo,
                 descripcion=descripcion,
-                categoria=categoria,
                 monto=monto,
                 fecha=fecha,
-                pagado=pagado
+                pagado=pagado,
+                metodo_pago=metodo_pago,
+                notas=notas,
+                categoria=categoria,
             )
-            messages.success(request, "Gasto registrado correctamente.")
+            messages.success(request, 'Movimiento registrado correctamente.')
         except Exception as e:
-            messages.error(request, f"Error al registrar: {e}")
-            
-    return redirect('dashboard_cashflow') # Nombre de tu url de cashflow
+            messages.error(request, f'Error al registrar: {e}')
+
+    if hogar_id:
+        return redirect('dashboard_cashflow_hogar', hogar_id=hogar_id)
+    return redirect('dashboard_cashflow')
+
+
+@login_required
+def eliminar_movimiento(request, pk):
+    movimiento = get_object_or_404(MovimientoCaja, pk=pk)
+    hogar_id = movimiento.hogar_id
+    if request.method == 'POST':
+        movimiento.delete()
+        messages.success(request, 'Movimiento eliminado.')
+    return redirect('dashboard_cashflow_hogar', hogar_id=hogar_id)

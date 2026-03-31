@@ -1,11 +1,28 @@
 from django.contrib import admin
-from .models import CategoriaGasto, Gasto
+from .models import CategoriaGasto, Gasto, Hogares, MovimientoCaja
 
 @admin.register(CategoriaGasto)
 class CategoriaGastoAdmin(admin.ModelAdmin):
-    list_display = ('nombre', 'tipo')
+    list_display = ('nombre', 'tipo_movimiento', 'tipo')
     search_fields = ('nombre',)
-    list_filter = ('tipo',)
+    list_filter = ('tipo_movimiento', 'tipo')
+
+@admin.register(Hogares)
+class HogaresAdmin(admin.ModelAdmin):
+    list_display = ('nombre', 'contacto', 'telefono', 'email')
+    search_fields = ('nombre',)
+
+@admin.register(MovimientoCaja)
+class MovimientoCajaAdmin(admin.ModelAdmin):
+    list_display = ('fecha', 'hogar', 'tipo', 'descripcion', 'categoria', 'monto_formateado', 'pagado')
+    list_filter = ('hogar', 'tipo', 'pagado', 'categoria', 'fecha')
+    search_fields = ('descripcion',)
+    ordering = ('-fecha',)
+    list_editable = ('pagado',)
+
+    def monto_formateado(self, obj):
+        return f"${obj.monto:,.2f}"
+    monto_formateado.short_description = 'Monto'
 
 @admin.register(Gasto)
 class GastoAdmin(admin.ModelAdmin):

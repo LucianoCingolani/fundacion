@@ -88,6 +88,13 @@
         </div>
     </div>
 
+    <div class="flex justify-end">
+        <button type="button" onclick="toggleChartModal()"
+                class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm">
+            Ver gráfico
+        </button>
+    </div>
+
     <!-- Tabla de movimientos -->
     <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
         <div class="px-5 py-4 border-b border-slate-100 flex justify-between items-center">
@@ -168,6 +175,11 @@
 
     {% endif %}
 </div>
+
+{{ egresos_chart_labels|json_script:"egresosChartLabels" }}
+{{ egresos_chart_data|json_script:"egresosChartData" }}
+{{ ingresos_chart_labels|json_script:"ingresosChartLabels" }}
+{{ ingresos_chart_data|json_script:"ingresosChartData" }}
 
 <!-- Modal: Nuevo Movimiento -->
 {% if hogar_activo %}
@@ -275,9 +287,48 @@
     </div>
 </div>
 
+<!-- Modal: Gráfico de categorías -->
+<div id="modalGrafico" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden items-center justify-center z-50 flex">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-3xl overflow-hidden">
+        <div class="p-5 border-b border-slate-100 flex justify-between items-center">
+            <div>
+                <h3 class="text-lg font-bold text-slate-800">Distribución por Categorías</h3>
+                <p class="text-xs text-slate-400">{{ hogar_activo.nombre }} · {{ mes }}/{{ anio }}</p>
+            </div>
+            <button onclick="toggleChartModal()" class="text-slate-400 hover:text-slate-600 text-2xl leading-none">&times;</button>
+        </div>
+
+        <div class="p-5 space-y-4">
+            <div class="inline-flex bg-slate-100 rounded-lg p-1">
+                <button type="button" id="tabIngresos" onclick="setChartTab('ingreso')"
+                        class="px-4 py-2 rounded-md text-sm font-medium text-slate-600 hover:text-slate-800 transition">
+                    Ingresos
+                </button>
+                <button type="button" id="tabEgresos" onclick="setChartTab('egreso')"
+                        class="px-4 py-2 rounded-md text-sm font-medium text-slate-600 hover:text-slate-800 transition">
+                    Egresos
+                </button>
+            </div>
+
+            <div id="chartEmptyState" class="hidden h-64 items-center justify-center rounded-lg border border-dashed border-slate-200 bg-slate-50">
+                <p class="text-sm text-slate-400">No hay movimientos para graficar en esta pestaña.</p>
+            </div>
+
+            <div id="chartContainer" class="h-72">
+                <canvas id="categoriasPieChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
 function toggleModal() {
     const modal = document.getElementById('modalMovimiento');
+    modal.classList.toggle('hidden');
+}
+
+function toggleChartModal() {
+    const modal = document.getElementById('modalGrafico');
     modal.classList.toggle('hidden');
 }
 
@@ -296,6 +347,90 @@ function toggleCategoria(tipo) {
 
 // Estado inicial: egreso está checked
 toggleCategoria('egreso');
+
+const pieChartCanvas = document.getElementById('categoriasPieChart');
+const ingresosLabels = JSON.parse(document.getElementById('ingresosChartLabels').textContent);
+const ingresosData = JSON.parse(document.getElementById('ingresosChartData').textContent);
+const egresosLabels = JSON.parse(document.getElementById('egresosChartLabels').textContent);
+const egresosData = JSON.parse(document.getElementById('egresosChartData').textContent);
+const tabIngresos = document.getElementById('tabIngresos');
+const tabEgresos = document.getElementById('tabEgresos');
+const chartEmptyState = document.getElementById('chartEmptyState');
+const chartContainer = document.getElementById('chartContainer');
+
+let categoriasChart = null;
+
+if (pieChartCanvas) {
+
+    const chartColors = [
+        '#ef4444', '#f97316', '#eab308', '#22c55e', '#06b6d4',
+        '#3b82f6', '#6366f1', '#a855f7', '#ec4899', '#14b8a6'
+    ];
+
+    categoriasChart = new Chart(pieChartCanvas, {
+        type: 'pie',
+        data: {
+            labels: [],
+            datasets: [{
+                data: [],
+                backgroundColor: [],
+                borderColor: '#ffffff',
+                borderWidth: 2,
+            }],
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        usePointStyle: true,
+                        pointStyle: 'circle',
+                        padding: 16,
+                    },
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const value = Number(context.raw || 0).toLocaleString('es-AR', {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                            });
+                            return `${context.label}: $${value}`;
+                        },
+                    },
+                },
+            },
+        },
+    });
+
+    window.setChartTab = function(tab) {
+        const labels = tab === 'ingreso' ? ingresosLabels : egresosLabels;
+        const data = tab === 'ingreso' ? ingresosData : egresosData;
+        const hasData = data && data.length > 0;
+
+        tabIngresos.className = tab === 'ingreso'
+            ? 'px-4 py-2 rounded-md text-sm font-medium bg-white shadow text-green-700'
+            : 'px-4 py-2 rounded-md text-sm font-medium text-slate-600 hover:text-slate-800 transition';
+        tabEgresos.className = tab === 'egreso'
+            ? 'px-4 py-2 rounded-md text-sm font-medium bg-white shadow text-red-700'
+            : 'px-4 py-2 rounded-md text-sm font-medium text-slate-600 hover:text-slate-800 transition';
+
+        chartEmptyState.classList.toggle('hidden', hasData);
+        chartEmptyState.classList.toggle('flex', !hasData);
+        chartContainer.classList.toggle('hidden', !hasData);
+
+        categoriasChart.data.labels = labels;
+        categoriasChart.data.datasets[0].data = data;
+        categoriasChart.data.datasets[0].backgroundColor = labels.map((_, i) => chartColors[i % chartColors.length]);
+        categoriasChart.update();
+    };
+
+    setChartTab('egreso');
+} else {
+    window.setChartTab = function() {};
+}
 </script>
 {% endif %}
 

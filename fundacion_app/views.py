@@ -129,6 +129,36 @@ def dashboard_cashflow(request, hogar_id=None):
     categorias_ingreso = CategoriaGasto.objects.filter(tipo_movimiento='ingreso').order_by('nombre')
     categorias_egreso = CategoriaGasto.objects.filter(tipo_movimiento='egreso').order_by('nombre')
 
+    egresos_por_categoria_qs = (
+        movimientos_qs
+        .filter(tipo='egreso')
+        .values('categoria__nombre')
+        .annotate(total=Sum('monto'))
+        .order_by('-total')
+    )
+
+    ingresos_por_categoria_qs = (
+        movimientos_qs
+        .filter(tipo='ingreso')
+        .values('categoria__nombre')
+        .annotate(total=Sum('monto'))
+        .order_by('-total')
+    )
+
+    egresos_chart_labels = []
+    egresos_chart_data = []
+    for item in egresos_por_categoria_qs:
+        nombre_categoria = item['categoria__nombre'] or 'Sin categoría'
+        egresos_chart_labels.append(nombre_categoria)
+        egresos_chart_data.append(float(item['total'] or 0))
+
+    ingresos_chart_labels = []
+    ingresos_chart_data = []
+    for item in ingresos_por_categoria_qs:
+        nombre_categoria = item['categoria__nombre'] or 'Sin categoría'
+        ingresos_chart_labels.append(nombre_categoria)
+        ingresos_chart_data.append(float(item['total'] or 0))
+
     context = {
         'hogares': hogares,
         'hogar_activo': hogar_activo,
@@ -140,6 +170,10 @@ def dashboard_cashflow(request, hogar_id=None):
         'categorias_egreso': categorias_egreso,
         'mes': mes,
         'anio': anio,
+        'egresos_chart_labels': egresos_chart_labels,
+        'egresos_chart_data': egresos_chart_data,
+        'ingresos_chart_labels': ingresos_chart_labels,
+        'ingresos_chart_data': ingresos_chart_data,
     }
     return render(request, 'cashflow.html', context)
 
